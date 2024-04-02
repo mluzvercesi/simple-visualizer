@@ -10,6 +10,7 @@ ui <- navbarPage("Data", id="nav",
 				tableOutput("filesummary")
 			),
 			mainPanel("Main contents",
+			          checkboxInput("headerbool", "Header", value = TRUE),
 				tableOutput("table")
 			)
 		)
@@ -32,7 +33,7 @@ server <- function(input, output, session) {
       size <- size/1024
       counter <- counter+1
     }
-    colnames(summary)[2] <- paste0("Size (",c("bytes","kB", "MB", "GB")[counter],")")
+    colnames(summary)[2] <- paste0("Size (",c("B","kB", "MB", "GB")[counter],")")
     summary[2] <- size
     
     summary
@@ -43,9 +44,9 @@ server <- function(input, output, session) {
     
     filext <- tools::file_ext(input$upload$name)
     if(filext %in% c("txt","text","csv")){
-      data <- read.table(file = input$upload$datapath, sep = ",", header=TRUE)
+      data <- read.table(file = input$upload$datapath, sep = ",", header=input$headerbool)
     } else if(filext %in% c("xls","xlsx","tsv")){
-      data <- read.table(file = input$upload$datapath, sep = "\t", header=TRUE)
+      data <- read.table(file = input$upload$datapath, sep = "\t", header=input$headerbool)
     } else {
       data <- NULL
       warning('Supported file formats are plain text, comma/tab separated values, and Excel formats')
