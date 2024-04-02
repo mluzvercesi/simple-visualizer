@@ -11,16 +11,26 @@ ui <- navbarPage("Data", id="nav",
 			),
 			mainPanel("Main contents",
 			          checkboxInput("headerbool", "Header", value = TRUE),
+			          #checkboxInput("transpose", "Transpose", value = FALSE),
+			          selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE),
 				tableOutput("table")
 			)
 		)
 	),
 	
 	tabPanel("Explorer",
+	         dataTableOutput("filtered")
 	)
 )
 
 server <- function(input, output, session) {
+  observe({ # Update column names input
+    req(input$upload)
+    updateSelectInput(session, "cols",
+                      choices = colnames(data()),
+                      selected = colnames(data()))
+  })
+  
   filesummary <- reactive({
     req(input$upload)
     summary <- input$upload[1:3]
@@ -39,23 +49,31 @@ server <- function(input, output, session) {
     summary
   })
   
+  # Full dataset
   data <- reactive({
     req(input$upload)
     
     filext <- tools::file_ext(input$upload$name)
     if(filext %in% c("txt","text","csv")){
-      data <- read.table(file = input$upload$datapath, sep = ",", header=input$headerbool)
+      sepct <- ","
     } else if(filext %in% c("xls","xlsx","tsv")){
-      data <- read.table(file = input$upload$datapath, sep = "\t", header=input$headerbool)
-    } else {
-      data <- NULL
-      warning('Supported file formats are plain text, comma/tab separated values, and Excel formats')
+      sepct <- "\t"
     }
+    data <- read.table(file = input$upload$datapath, sep = sepct, header=input$headerbool)
+    #if(input$transpose) t(data) else data
     data
   })
   
+  # Filtered dataset
+  filteredData <- reactive({
+    if(any(!input$cols %in% colnames(data())) | is.null(input$cols)) data() else data()[,input$cols]
+  })
+  
 	output$filesummary <- renderTable(filesummary(), width="100%")
-	output$table <- renderTable(head(data()))
+	
+	output$table <- renderTable(head(filteredData()))
+	
+	output$filtered <- renderDataTable(filteredData())
 }
 
 shinyApp(ui, server)
