@@ -1,14 +1,15 @@
 library(plotly)
+library(DT)
 
 ui <- navbarPage("Data", id="nav",
 	tabPanel("Settings",
 		sidebarLayout(
-			sidebarPanel("Sidebar",
-				fileInput("upload", NULL, multiple = TRUE,
-				          accept=c(".txt",".text",".csv",".tsv",".xls",".xlsx"))
+			sidebarPanel(
+				fileInput("upload", NULL,
+				          accept=c(".txt",".text",".csv",".tsv",".xls",".xlsx")),
+				tableOutput("filesummary")
 			),
 			mainPanel("Main contents",
-				tableOutput("files"),
 				tableOutput("table")
 			)
 		)
@@ -19,6 +20,24 @@ ui <- navbarPage("Data", id="nav",
 )
 
 server <- function(input, output, session) {
+  filesummary <- reactive({
+    req(input$upload)
+    summary <- input$upload[1:3]
+    colnames(summary) <- c("File name", "Size", "Type")
+    
+    # transform Size to proper unit
+    size <- summary[2]
+    counter <- 1
+    while(size>1024){
+      size <- size/1024
+      counter <- counter+1
+    }
+    colnames(summary)[2] <- paste0("Size (",c("bytes","kB", "MB", "GB")[counter],")")
+    summary[2] <- size
+    
+    summary
+  })
+  
   data <- reactive({
     req(input$upload)
     
@@ -33,7 +52,8 @@ server <- function(input, output, session) {
     }
     data
   })
-	output$files <- renderTable(input$upload)
+  
+	output$filesummary <- renderTable(filesummary(), width="100%")
 	output$table <- renderTable(head(data()))
 }
 
