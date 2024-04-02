@@ -13,11 +13,11 @@ ui <- navbarPage("Data", id="nav",
 				tableOutput("filesummary")
 			),
 			mainPanel(
-			  fluidRow(
-			    column(6, checkboxInput("headerbool", "Set first row as header", value = TRUE)),
-			    #checkboxInput("transpose", "Transpose", value = FALSE)
-			    column(6, selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE))
-			  ),
+			  checkboxInput("headerbool", "Set first row as header", value = TRUE),
+			  br(),
+			  #checkboxInput("transpose", "Transpose", value = FALSE)
+			  selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE),
+			  br(),
 			  tableOutput("preview")
 			)
 		)
@@ -27,8 +27,9 @@ ui <- navbarPage("Data", id="nav",
 	tabPanel("Explorer",
 	   div(h4("View full dataset with selected variables, and some basic plots")),
 	   fluidRow(
-	     column(8, DT::dataTableOutput("filtered"), style='padding:16px;'),
-	     column(4,
+	     column(8, DT::dataTableOutput("filtered"),
+	            style='padding-left:16px; padding-right:64px; padding-top:16px; padding-bottom:16px'),
+	     column(4, align='center',#style='padding:8px;',
 	       fluidRow(
 	         selectInput("plotType", "Plot Type",
 	                     c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")
