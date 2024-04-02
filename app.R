@@ -2,8 +2,9 @@ library(plotly)
 library(DT)
 
 ui <- navbarPage("Data", id="nav",
-  # File ettings and filters
-	tabPanel("Settings",
+  # File settings and filters
+  tabPanel("Settings",
+    div(h4("Upload your file to view a file summary, a dataset preview, and select variables to work with")),
 		sidebarLayout(
 			sidebarPanel(
 				fileInput("upload", NULL,
@@ -24,21 +25,26 @@ ui <- navbarPage("Data", id="nav",
 	
   # Data exploration
 	tabPanel("Explorer",
+	   div(h4("View full dataset with selected variables, and some basic plots")),
 	   fluidRow(
-	     column(8, DT::dataTableOutput("filtered")),
+	     column(8, DT::dataTableOutput("filtered"), style='padding:16px;'),
 	     column(4,
 	       fluidRow(
 	         selectInput("plotType", "Plot Type",
-	                     c(Scatter = "scatter", Histogram = "hist")
+	                     c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")
 	         ),
 	         conditionalPanel(
 	           condition = "input.plotType == 'scatter'",
-	           selectizeInput("scattervars", "Scatter variables", choices=NULL, options=list(maxItems=2)),
-	           selectizeInput("scattercol", "Color by", choices="None", options=list(maxItems=1))
+	           selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
+	           selectizeInput("scattercol", "Color by (character)", choices="None", options=list(maxItems=1))
 	         ),
 	         conditionalPanel(
-	           condition = "input.plotType == 'hist'",
-	           selectizeInput("histvar", "Histogram variable", choices=NULL, options=list(maxItems=1))
+	           condition = "input.plotType == 'hist' || input.plotType == 'box'",
+	           selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
+	         ),
+	         conditionalPanel(
+	           condition = "input.plotType == 'box'",
+	           selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
 	         )
 	       ),
 	       fluidRow(plotlyOutput("plot"))
@@ -66,13 +72,17 @@ server <- function(input, output, session) {
                       choices = varOptions,
                       selected = varOptions[c(1,2)])
       
-      updateSelectizeInput(session, "histvar",
+      updateSelectizeInput(session, "singlevar",
                            choices = varOptions,
                            selected = varOptions[1])
     }
     
     if(length(colOptions)>0){
       updateSelectizeInput(session, "scattercol",
+                           choices = c("None", colOptions),
+                           selected = "None")
+      
+      updateSelectizeInput(session, "boxcol",
                            choices = c("None", colOptions),
                            selected = "None")
     }
@@ -132,9 +142,10 @@ server <- function(input, output, session) {
 	output$plot <- renderPlotly({
 	  req(filteredData())
 	  
-	  # Scatter plot
 	  if (input$plotType == "scatter") {
+	    # Scatter plot
 	    req(length(input$scattervars)==2)
+	    
 	    plot_ly(data = filteredData(), 
 	          x = ~get(input$scattervars[1]), 
 	          y = ~get(input$scattervars[2]), 
@@ -143,9 +154,19 @@ server <- function(input, output, session) {
 	          color = if(input$scattercol=="None") NULL else ~get(input$scattercol)) %>% 
 	       layout(xaxis = list(title = as.character(input$scattervars[1])),
 	              yaxis = list(title = as.character(input$scattervars[2])))
+	    
 	  } else if (input$plotType == "hist"){
-	    plot_ly(x = ~filteredData()[input$histvar], 
-	            type = "histogram")
+	    # Histogram plot
+	    plot_ly(x = ~filteredData()[,input$singlevar], 
+	            type = "histogram") %>% 
+	      layout(xaxis = list(title = as.character(input$singlevar)))
+	    
+	  } else if (input$plotType == "box"){
+	    # Box plot
+	    plot_ly(filteredData(), y = ~get(input$singlevar),
+	            color = if(input$boxcol=="None") NULL else ~get(input$boxcol),
+	            type = "box") %>% 
+	      layout(xaxis = list(title = as.character(input$singlevar)))
 	  }
 	})
 }
