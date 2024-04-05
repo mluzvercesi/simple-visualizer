@@ -1,60 +1,73 @@
 library(plotly)
 library(DT)
+library(shinydashboard)
 
-ui <- navbarPage("Data", id="nav",
-  # File settings and filters
-  tabPanel("Settings",
-    div(h4("Upload your file to view a file summary, a dataset preview, and select variables to work with")),
-		sidebarLayout(
-			sidebarPanel(
-				fileInput("upload", NULL,
+ui <- dashboardPage(
+  dashboardHeader(disable = TRUE),
+  dashboardSidebar(disable = TRUE),
+  dashboardBody(
+    tabsetPanel(
+      # File settings and filters
+      tabPanel("Settings",
+        div(h4("Upload your file to view a file summary, a dataset preview, and select variables to work with")),
+        fluidRow(
+          column(4,
+            box(title = "File input", width = 12, status = "primary",
+                fileInput("upload", NULL,
 				          accept=c(".txt",".text",".csv",".tsv",".xls",".xlsx"),
-				          placeholder="Select file to begin"),
-				tableOutput("filesummary")
-			),
-			mainPanel(
-			  checkboxInput("headerbool", "Set first row as header", value = TRUE),
-			  br(),
-			  #checkboxInput("transpose", "Transpose", value = FALSE)
-			  selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE),
-			  br(),
-			  tableOutput("preview")
-			)
-		)
-	),
-	
-  # Data exploration
-	tabPanel("Explorer",
-	   div(h4("View full dataset with selected variables, and some basic plots")),
-	   fluidRow(
-	     column(8, DT::dataTableOutput("filtered"),
-	            style='padding-left:16px; padding-right:64px; padding-top:16px; padding-bottom:16px'),
-	     column(4, align='center',#style='padding:8px;',
-	       fluidRow(
-	         selectInput("plotType", "Plot Type",
-	                     c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")
-	         ),
-	         conditionalPanel(
-	           condition = "input.plotType == 'scatter'",
-	           selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
-	           selectizeInput("scattercol", "Color by (character)", choices="None", options=list(maxItems=1))
-	         ),
-	         conditionalPanel(
-	           condition = "input.plotType == 'hist' || input.plotType == 'box'",
-	           selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
-	         ),
-	         conditionalPanel(
-	           condition = "input.plotType == 'box'",
-	           selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
-	         )
-	       ),
-	       fluidRow(plotlyOutput("plot"))
-	     )
-	   )
-	)
+				          placeholder="Select file to begin"))),
+          column(8,
+            valueBoxOutput("filename", width=4),
+            valueBoxOutput("filesize", width=4),
+            valueBoxOutput("filetype", width=4)),
+        ),
+        fluidRow(
+          column(4,
+            box(title = "Data settings", width=12, status="success",
+                checkboxInput("headerbool", "Set first row as header", value = TRUE),
+                #checkboxInput("transpose", "Transpose", value = FALSE)
+                selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE)
+                )),
+          column(8, 
+            box(title = "Data preview", width=12, status="warning",
+                tableOutput("preview"))
+          )
+        )
+      ),
+      
+      # Data exploration
+      tabPanel("Explorer",
+        div(h4("View full dataset with selected variables, and some basic plots")),
+        fluidRow(
+          column(8, DT::dataTableOutput("filtered"),
+            style='padding-left:16px; padding-right:64px; padding-top:16px; padding-bottom:16px'),
+          column(4, align='center',#style='padding:8px;',
+            fluidRow(selectInput("plotType", "Plot Type",
+                                 c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")),
+                     conditionalPanel(
+                       condition = "input.plotType == 'scatter'",
+                       selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
+                       selectizeInput("scattercol", "Color by (character)", choices="None", options=list(maxItems=1))
+                     ),
+                     conditionalPanel(
+                       condition = "input.plotType == 'hist' || input.plotType == 'box'",
+                       selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
+                     ),
+                     conditionalPanel(
+                       condition = "input.plotType == 'box'",
+                       selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
+                     )
+            ),
+            fluidRow(plotlyOutput("plot"))
+          )
+        )
+      )
+    )
+  )
 )
 
 server <- function(input, output, session) {
+  # Update UI options
   observe({ # Update column names input
     req(input$upload)
     updateSelectInput(session, "cols",
@@ -89,10 +102,10 @@ server <- function(input, output, session) {
     }
   })
   
+  # File settings
   filesummary <- reactive({
     req(input$upload)
     summary <- input$upload[1:3]
-    colnames(summary) <- c("File name", "Size", "Type")
     
     # transform Size to proper unit
     size <- summary[2]
@@ -101,7 +114,7 @@ server <- function(input, output, session) {
       size <- size/1024
       counter <- counter+1
     }
-    colnames(summary)[2] <- paste0("Size (",c("B","kB", "MB", "GB")[counter],")")
+    colnames(summary)[2] <- c("B","kB", "MB", "GB")[counter]
     summary[2] <- size
     
     summary
@@ -132,9 +145,21 @@ server <- function(input, output, session) {
   })
   
   # Outputs
-	output$filesummary <- renderTable(filesummary(), width="100%",
-	                                  caption="File summary", caption.placement="top")
-	
+  output$filename <- renderValueBox({
+    valueBox(filesummary()[1], "File name",
+             icon = icon("file"), color = "light-blue")
+  })
+  
+  output$filesize <- renderValueBox({
+    valueBox(paste(round(filesummary()[2], digits = 2), colnames(filesummary())[2]), "File size",
+             icon = icon("file-zipper"), color = "aqua")
+  })
+  
+  output$filetype <- renderValueBox({
+    valueBox(filesummary()[3], "File type",
+             icon = icon("file-circle-question"), color = "teal")
+  })
+  
 	output$preview <- renderTable(head(filteredData()), width="100%",
 	                              caption="Dataset preview", caption.placement="top")
 	
@@ -169,6 +194,10 @@ server <- function(input, output, session) {
 	            type = "box") %>% 
 	      layout(xaxis = list(title = as.character(input$singlevar)))
 	  }
+	})
+	
+	session$onSessionEnded(function() {
+	  stopApp()
 	})
 }
 
