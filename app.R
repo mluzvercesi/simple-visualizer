@@ -11,11 +11,11 @@ ui <- dashboardPage(
     tabsetPanel(
       # File settings and data filters
       tabPanel("Settings",
-        div(h4("Upload a file to view file summary, a data preview, and to select variables to work with")),
+        div(h4("Upload a table to view file summary, data preview, and to select variables to work with")),
         # File settings
         fluidRow(
           column(4,
-            box(title = "File input", width = 12, status = "primary",
+            box(title = "File input", width=12, status = "primary",
                 fileInput("upload", NULL,
 				          accept=c(".txt",".text",".csv",".tsv",".xls",".xlsx"),
 				          placeholder="Select file to begin"))),
@@ -28,6 +28,9 @@ ui <- dashboardPage(
         fluidRow(
           column(4,
             box(title = "Data settings", width=12, status="success",
+                selectInput("delimiter", "Delimiter",
+                            c("Detect from file type" = "best",
+                              Comma = ",", Colon = ":", Semicolon = ";", Tab = "\t", Space=" ", Pipe = "|")),
                 checkboxInput("headerbool", "Set first row as header", value = TRUE),
                 #checkboxInput("transpose", "Transpose", value = FALSE)
                 selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE)
@@ -83,7 +86,7 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   # Update UI options ####
   observe({ # Update column names input
-    req(input$upload)
+    req(data())
     updateSelectInput(session, "cols",
                       choices = names(data()),
                       selected = names(data()))
@@ -145,8 +148,19 @@ server <- function(input, output, session) {
     } else if(filext %in% c("xls","xlsx","tsv")){
       sepct <- "\t"
     }
-    data <- read.table(file = input$upload$datapath, sep = sepct, header=input$headerbool, fill=TRUE, quote="\"")
-    #if(input$transpose) t(data) else data
+    if(!input$delimiter=="best"){
+      # try to use custom delimiter 
+      data <- tryCatch(read.table(file = input$upload$datapath, sep = input$delimiter,
+                                  header=input$headerbool, fill=TRUE, quote="\""),
+                       # otherwise use comma or tab
+                        error = function(msg){
+                          read.table(file = input$upload$datapath, sep = sepct,
+                                     header=input$headerbool, fill=TRUE, quote="\"")})
+    }else{
+      data <- read.table(file = input$upload$datapath, sep = sepct, header=input$headerbool, fill=TRUE, quote="\"")
+    }
+    
+    #if(input$transpose) t(data) else data # would this be useful at any point?
     data
   })
   
