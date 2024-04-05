@@ -145,7 +145,7 @@ server <- function(input, output, session) {
     } else if(filext %in% c("xls","xlsx","tsv")){
       sepct <- "\t"
     }
-    data <- read.table(file = input$upload$datapath, sep = sepct, header=input$headerbool)
+    data <- read.table(file = input$upload$datapath, sep = sepct, header=input$headerbool, fill=TRUE, quote="\"")
     #if(input$transpose) t(data) else data
     data
   })
