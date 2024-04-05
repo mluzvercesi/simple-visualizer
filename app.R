@@ -7,9 +7,10 @@ ui <- dashboardPage(
   dashboardSidebar(disable = TRUE),
   dashboardBody(
     tabsetPanel(
-      # File settings and filters
+      # File settings and data filters
       tabPanel("Settings",
         div(h4("Upload your file to view a file summary, a dataset preview, and select variables to work with")),
+        # File settings
         fluidRow(
           column(4,
             box(title = "File input", width = 12, status = "primary",
@@ -21,6 +22,7 @@ ui <- dashboardPage(
             valueBoxOutput("filesize", width=4),
             valueBoxOutput("filetype", width=4)),
         ),
+        # Data filters
         fluidRow(
           column(4,
             box(title = "Data settings", width=12, status="success",
@@ -39,26 +41,30 @@ ui <- dashboardPage(
       tabPanel("Explorer",
         div(h4("View full dataset with selected variables, and some basic plots")),
         fluidRow(
-          column(8, DT::dataTableOutput("filtered"),
-            style='padding-left:16px; padding-right:64px; padding-top:16px; padding-bottom:16px'),
-          column(4, align='center',#style='padding:8px;',
-            fluidRow(selectInput("plotType", "Plot Type",
-                                 c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")),
-                     conditionalPanel(
-                       condition = "input.plotType == 'scatter'",
-                       selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
-                       selectizeInput("scattercol", "Color by (character)", choices="None", options=list(maxItems=1))
-                     ),
-                     conditionalPanel(
-                       condition = "input.plotType == 'hist' || input.plotType == 'box'",
-                       selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
-                     ),
-                     conditionalPanel(
-                       condition = "input.plotType == 'box'",
-                       selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
-                     )
-            ),
-            fluidRow(plotlyOutput("plot"))
+          column(8,
+            box(title = "Filtered dataset", width=12, status="warning",
+                DT::dataTableOutput("filtered"))),
+            #style='padding-left:16px; padding-right:64px; padding-top:16px; padding-bottom:16px'),
+          column(4, #align='center',#style='padding:8px;',
+            box(title = "Plot options", width=12, status="success",
+                selectInput("plotType", "Plot Type",
+                                     c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")),
+                conditionalPanel(
+                  condition = "input.plotType == 'scatter'",
+                  selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
+                  selectizeInput("scattercol", "Color by (character)", choices="None", options=list(maxItems=1))
+                ),
+                conditionalPanel(
+                  condition = "input.plotType == 'hist' || input.plotType == 'box'",
+                  selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
+                ),
+                conditionalPanel(
+                  condition = "input.plotType == 'box'",
+                  selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
+                ),
+                plotlyOutput("plot")
+            )
+            
           )
         )
       )
@@ -67,7 +73,7 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output, session) {
-  # Update UI options
+  # Update UI options ####
   observe({ # Update column names input
     req(input$upload)
     updateSelectInput(session, "cols",
@@ -102,7 +108,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # File settings
+  # Reactives ####
+  # File summary
   filesummary <- reactive({
     req(input$upload)
     summary <- input$upload[1:3]
@@ -144,7 +151,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # Outputs
+  # Outputs ####
+  # Value boxes
   output$filename <- renderValueBox({
     valueBox(filesummary()[1], "File name",
              icon = icon("file"), color = "light-blue")
@@ -160,11 +168,13 @@ server <- function(input, output, session) {
              icon = icon("file-circle-question"), color = "teal")
   })
   
-	output$preview <- renderTable(head(filteredData()), width="100%",
-	                              caption="Dataset preview", caption.placement="top")
+  # data preview
+	output$preview <- renderTable(head(filteredData()))
 	
+	# filtered data
 	output$filtered <- DT::renderDataTable(filteredData(), options = list(scrollX = TRUE))
 	
+	# plots
 	output$plot <- renderPlotly({
 	  req(filteredData())
 	  
