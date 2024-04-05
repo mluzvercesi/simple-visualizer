@@ -2,6 +2,8 @@ library(plotly)
 library(DT)
 library(shinydashboard)
 
+options(shiny.maxRequestSize = 10 * 1024^2) # change the maximum file size permitted
+
 ui <- dashboardPage(
   dashboardHeader(disable = TRUE),
   dashboardSidebar(disable = TRUE),
@@ -9,7 +11,7 @@ ui <- dashboardPage(
     tabsetPanel(
       # File settings and data filters
       tabPanel("Settings",
-        div(h4("Upload your file to view a file summary, a dataset preview, and select variables to work with")),
+        div(h4("Upload a file to view file summary, a data preview, and to select variables to work with")),
         # File settings
         fluidRow(
           column(4,
@@ -39,13 +41,12 @@ ui <- dashboardPage(
       
       # Data exploration
       tabPanel("Explorer",
-        div(h4("View full dataset with selected variables, and some basic plots")),
+        div(h4("View filtered variables of full dataset, and some basic plots")),
         fluidRow(
           column(8,
             box(title = "Filtered dataset", width=12, status="warning",
                 DT::dataTableOutput("filtered"))),
-            #style='padding-left:16px; padding-right:64px; padding-top:16px; padding-bottom:16px'),
-          column(4, #align='center',#style='padding:8px;',
+          column(4, #align='center',
             box(title = "Plot options", width=12, status="success",
                 selectInput("plotType", "Plot Type",
                                      c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")),
@@ -64,7 +65,6 @@ ui <- dashboardPage(
                 ),
                 plotlyOutput("plot")
             )
-            
           )
         )
       )
@@ -202,7 +202,7 @@ server <- function(input, output, session) {
 	    plot_ly(filteredData(), y = ~get(input$singlevar),
 	            color = if(input$boxcol=="None") NULL else ~get(input$boxcol),
 	            type = "box") %>% 
-	      layout(xaxis = list(title = as.character(input$singlevar)))
+	      layout(yaxis = list(title = as.character(input$singlevar)))
 	  }
 	})
 	
