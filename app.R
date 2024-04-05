@@ -60,6 +60,14 @@ ui <- dashboardPage(
                   selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
                 ),
                 conditionalPanel(
+                  condition = "input.plotType == 'hist'",
+                  checkboxInput("histcustom", "Custom binning", value = FALSE),
+                  conditionalPanel(
+                    condition = "input.histcustom",
+                    sliderInput("bins", "Number of bins", min = 1, max = 100, value = 10)
+                  )
+                ),
+                conditionalPanel(
                   condition = "input.plotType == 'box'",
                   selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
                 ),
@@ -193,10 +201,18 @@ server <- function(input, output, session) {
 	    
 	  } else if (input$plotType == "hist"){
 	    # Histogram plot
-	    plot_ly(x = ~filteredData()[,input$singlevar], 
+	    minx <- floor(min(filteredData()[,input$singlevar]))
+	    maxx <- ceiling(max(filteredData()[,input$singlevar]))
+	    if(input$histcustom){
+	      plot_ly(x = ~filteredData()[,input$singlevar], 
+	              type = "histogram",
+	              xbins = list(start = minx, end = maxx, size = (maxx-minx)/input$bins)) %>% 
+	        layout(xaxis = list(title = as.character(input$singlevar)))
+	    }else{
+	      plot_ly(x = ~filteredData()[,input$singlevar], 
 	            type = "histogram") %>% 
 	      layout(xaxis = list(title = as.character(input$singlevar)))
-	    
+	    }
 	  } else if (input$plotType == "box"){
 	    # Box plot
 	    plot_ly(filteredData(), y = ~get(input$singlevar),
