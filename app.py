@@ -1,6 +1,7 @@
 from shiny import App, ui, reactive, render, req
 import pandas as pd
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 app_ui = ui.page_fluid(
     ui.navset_tab(
@@ -50,9 +51,24 @@ app_ui = ui.page_fluid(
         ui.nav_panel("Explorer",
             ui.tags.h4("View filtered variables of full dataset, and some basic plots"),
             ui.row(
+                # Filtered dataset
                 ui.column(8,
                     ui.card(ui.card_header("Filtered data", {"style": "border-top: solid orange"}),
-                        ui.output_data_frame("filtered"))))),
+                        ui.output_data_frame("filtered"))),
+                # Plot options
+                ui.column(4,
+                    ui.card(ui.card_header("Plot options", {"style": "border-top: solid green"}),
+                        ui.input_select("plotType", "Plot Type",
+                                        {"scatter":"Scatter", "hist":"Histogram", "box":"Boxplot"}),
+                        ui.panel_conditional("input.plotType == 'scatter'",
+                            ui.input_selectize(id="scattervars", label="Scatter variables (numeric)", choices=[], options={"maxItems":2})),
+                        ui.panel_conditional("input.plotType == 'hist' || input.plotType == 'box'",
+                            ui.input_selectize(id="singlevar", label="Variable (numeric)", choices=[])),
+                        ui.output_plot("plot")
+                    )
+                )
+            )
+        ),
     )
 )
 
@@ -62,11 +78,16 @@ def server(input, output, session):
     @reactive.effect
     def _():
         f = req(input.upload())
-        ui.update_selectize(
-            "cols",
-            choices=list(data().columns),
-            selected=list(data().columns)
-        )
+        ui.update_selectize("cols",choices=list(data().columns),selected=list(data().columns))
+    
+    @reactive.effect
+    def _():
+        if len(list(filteredData().columns))>0:
+            ui.update_selectize("scattervars",choices=list(filteredData().columns),selected=list(filteredData().columns)[0])
+            ui.update_selectize("singlevar", choices=list(filteredData().columns), selected=list(filteredData().columns)[0])
+        else:
+            ui.update_selectize("scattervars",choices=[])
+            ui.update_selectize("singlevar", choices=[])
 
     @reactive.Calc()
     def data():
@@ -122,5 +143,19 @@ def server(input, output, session):
     @render.data_frame
     def filtered():
         return filteredData()
+    
+    @render.plot
+    def plot():
+        fig, ax = plt.subplots()
+        if input.plotType()=="scatter":
+            if len(input.scattervars())==1:
+                ax.scatter(filteredData().index, filteredData()[list(input.scattervars())])
+            else:
+                ax.scatter(filteredData()[list(input.scattervars())[0]], filteredData()[list(input.scattervars())[1]])
+        elif input.plotType()=="hist":
+            ax.hist(filteredData()[[input.singlevar()]])
+        elif input.plotType()=="box":
+            ax.boxplot(filteredData()[[input.singlevar()]])
+        return fig
 
 app = App(app_ui, server)
