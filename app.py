@@ -47,7 +47,12 @@ app_ui = ui.page_fluid(
             )
         ),
         # Data explorer
-        ui.nav_panel("Explorer", "Explorer panel content"),
+        ui.nav_panel("Explorer",
+            ui.tags.h4("View filtered variables of full dataset, and some basic plots"),
+            ui.row(
+                ui.column(8,
+                    ui.card(ui.card_header("Filtered data", {"style": "border-top: solid orange"}),
+                        ui.output_data_frame("filtered"))))),
     )
 )
 
@@ -109,10 +114,13 @@ def server(input, output, session):
         return f[0]["type"]
     
     # Table
-    @reactive.Calc()
     @render.table
     def preview():
         f = req(input.upload())
         return filteredData().head(6)
+    
+    @render.data_frame
+    def filtered():
+        return filteredData()
 
 app = App(app_ui, server)
