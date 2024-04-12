@@ -56,11 +56,11 @@ ui <- dashboardPage(
                 conditionalPanel(
                   condition = "input.plotType == 'scatter'",
                   selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
-                  selectizeInput("scattercol", "Color by (character)", choices="None", options=list(maxItems=1))
+                  selectizeInput("scattercol", "Color by (character)", choices="None")
                 ),
                 conditionalPanel(
                   condition = "input.plotType == 'hist' || input.plotType == 'box'",
-                  selectizeInput("singlevar", "Variable (numeric)", choices=NULL, options=list(maxItems=1))
+                  selectizeInput("singlevar", "Variable (numeric)", choices=NULL)
                 ),
                 conditionalPanel(
                   condition = "input.plotType == 'hist'",
@@ -72,7 +72,7 @@ ui <- dashboardPage(
                 ),
                 conditionalPanel(
                   condition = "input.plotType == 'box'",
-                  selectizeInput("boxcol", "Color by (character)", choices="None", options=list(maxItems=1))
+                  selectizeInput("boxcol", "Color by (character)", choices="None")
                 ),
                 plotlyOutput("plot")
             )
@@ -202,16 +202,26 @@ server <- function(input, output, session) {
 	  
 	  if (input$plotType == "scatter") {
 	    # Scatter plot
-	    req(length(input$scattervars)==2)
+	    req(length(input$scattervars))
 	    
-	    plot_ly(data = filteredData(), 
-	          x = ~get(input$scattervars[1]), 
-	          y = ~get(input$scattervars[2]), 
-	          mode = "markers",
-	          type = "scatter",
-	          color = if(input$scattercol=="None") NULL else ~get(input$scattercol)) %>% 
-	       layout(xaxis = list(title = as.character(input$scattervars[1])),
-	              yaxis = list(title = as.character(input$scattervars[2])))
+	    if (length(input$scattervars)==2){
+	      plot_ly(data = filteredData(), 
+	              x = ~get(input$scattervars[1]), 
+	              y = ~get(input$scattervars[2]), 
+	              mode = "markers",
+	              type = "scatter",
+	              color = if(input$scattercol=="None") NULL else ~get(input$scattercol)) %>% 
+	        layout(xaxis = list(title = as.character(input$scattervars[1])),
+	               yaxis = list(title = as.character(input$scattervars[2])))
+	    } else {
+	      plot_ly(data = filteredData(), 
+	              x = ~get(input$scattervars[1]), 
+	              mode = "markers",
+	              type = "scatter",
+	              color = if(input$scattercol=="None") NULL else ~get(input$scattercol)) %>% 
+	        layout(xaxis = list(title = as.character(input$scattervars[1])))
+	    }
+	    
 	    
 	  } else if (input$plotType == "hist"){
 	    # Histogram plot
