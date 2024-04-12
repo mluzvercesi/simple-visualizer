@@ -7,12 +7,13 @@ app_ui = ui.page_fluid(
     ui.navset_tab(
         # File settings and data filters
         ui.nav_panel("Settings",
-            ui.tags.h4("Upload a table to view file summary, data preview, and to select variables to work with"),
+            ui.tags.h6("Upload a table to view file summary, data preview, and to select variables to work with",
+                       {"style": "margin:16px"}),
             # File settings
             ui.row(
                 ui.column(4,
                     ui.card(ui.card_header("File input", {"style": "border-top: solid steelblue"}),
-                        ui.input_file("upload", "File input",
+                        ui.input_file("upload", "",
                                       accept=[".txt",".text",".csv",".tsv",".xls",".xlsx"],
                                       placeholder='Select file to begin'))),
                 ui.column(8,
@@ -50,7 +51,8 @@ app_ui = ui.page_fluid(
 
         # Data explorer
         ui.nav_panel("Explorer",
-            ui.tags.h4("View filtered variables of full dataset, and some basic plots"),
+            ui.tags.h6("View filtered variables of full dataset, and some basic plots",
+                       {"style": "margin:16px"}),
             ui.row(
                 # Filtered dataset
                 ui.column(8,
