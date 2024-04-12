@@ -41,6 +41,9 @@ app_ui = ui.page_fluid(
             ui.row(
                 ui.column(4,
                     ui.card(ui.card_header("Data settings", {"style": "border-top: solid green"}),
+                        ui.input_select("delimiter", "Delimiter",
+                                        {"best":"Detect from file type",
+                                         ",":"Comma", "\t":"Tab", " ":"Space", "|":"Pipe", ":":"Colon", ";":"Semicolon"}),
                         ui.input_checkbox("headerbool", "Set first row as header", value = True),
                         ui.input_selectize("cols", "Keep columns", [], multiple=True))),
                 ui.column(8,
@@ -94,8 +97,8 @@ def server(input, output, session):
     def _():
         if len(list(filteredData().columns))>0:
             varOptions = filteredData().select_dtypes(include="number").columns.tolist()
-            ui.update_selectize("scattervars",choices=varOptions,selected=varOptions[0])
-            ui.update_selectize("singlevar", choices=varOptions, selected=varOptions[0])
+            ui.update_selectize("scattervars",choices=varOptions,selected=varOptions[0] if len(varOptions)>1 else varOptions)
+            ui.update_selectize("singlevar", choices=varOptions, selected=varOptions[0] if len(varOptions)>1 else varOptions)
         else:
             ui.update_selectize("scattervars",choices=[])
             ui.update_selectize("singlevar", choices=[])
@@ -112,8 +115,16 @@ def server(input, output, session):
             headerbool = 0
         else:
             headerbool = None
+        
+        if not input.delimiter()=="best":
+            try:
+                data = pd.read_csv(f[0]['datapath'], sep = input.delimiter(), header = headerbool, quotechar="\"")
+            except:
+                data = pd.read_csv(f[0]['datapath'], sep = sepct, header = headerbool, quotechar="\"")
+        else:
+            data = pd.read_csv(f[0]['datapath'], sep = sepct, header = headerbool, quotechar="\"")
 
-        return pd.read_csv(f[0]['datapath'], sep = sepct, header = headerbool, quotechar="\"")
+        return data
     
     @reactive.Calc()
     def filteredData():

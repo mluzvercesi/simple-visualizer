@@ -30,7 +30,7 @@ ui <- dashboardPage(
             box(title = "Data settings", width=12, status="success",
                 selectInput("delimiter", "Delimiter",
                             c("Detect from file type" = "best",
-                              Comma = ",", Colon = ":", Semicolon = ";", Tab = "\t", Space=" ", Pipe = "|")),
+                              Comma = ",", Tab = "\t", Space=" ", Pipe = "|", Colon = ":", Semicolon = ";")),
                 checkboxInput("headerbool", "Set first row as header", value = TRUE),
                 #checkboxInput("transpose", "Transpose", value = FALSE)
                 selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE)
