@@ -67,7 +67,7 @@ ui <- dashboardPage(
                   checkboxInput("histcustom", "Custom binning", value = FALSE),
                   conditionalPanel(
                     condition = "input.histcustom",
-                    sliderInput("bins", "Number of bins", min = 1, max = 100, value = 10)
+                    sliderInput("bins", "Number of bins", min = 1, max = 50, value = 10)
                   )
                 ),
                 conditionalPanel(

@@ -47,23 +47,31 @@ app_ui = ui.page_fluid(
                             ui.output_table("preview")))
             )
         ),
+
         # Data explorer
         ui.nav_panel("Explorer",
             ui.tags.h4("View filtered variables of full dataset, and some basic plots"),
             ui.row(
                 # Filtered dataset
                 ui.column(8,
-                    ui.card(ui.card_header("Filtered data", {"style": "border-top: solid orange"}),
+                    ui.card(ui.card_header("Filtered dataset", {"style": "border-top: solid orange"}),
                         ui.output_data_frame("filtered"))),
                 # Plot options
                 ui.column(4,
                     ui.card(ui.card_header("Plot options", {"style": "border-top: solid green"}),
+                        # Plot type
                         ui.input_select("plotType", "Plot Type",
                                         {"scatter":"Scatter", "hist":"Histogram", "box":"Boxplot"}),
+                        # Conditional panels depending on plot type
                         ui.panel_conditional("input.plotType == 'scatter'",
                             ui.input_selectize(id="scattervars", label="Scatter variables (numeric)", choices=[], options={"maxItems":2})),
                         ui.panel_conditional("input.plotType == 'hist' || input.plotType == 'box'",
                             ui.input_selectize(id="singlevar", label="Variable (numeric)", choices=[])),
+                        ui.panel_conditional("input.plotType == 'hist'",
+                            ui.input_checkbox("histcustom", "Custom binning", value=False),
+                            ui.panel_conditional("input.histcustom",
+                                ui.input_slider(id="bins", label="Number of bins", min=1, max=50, value=10))),
+                        # Plot
                         ui.output_plot("plot")
                     )
                 )
@@ -161,7 +169,10 @@ def server(input, output, session):
                 plt.ylabel(input.scattervars()[1])
         elif input.plotType()=="hist":
             sv = req(input.singlevar())
-            ax.hist(filteredData()[[input.singlevar()]])
+            if not input.histcustom():
+                ax.hist(filteredData()[[input.singlevar()]])
+            else:
+                ax.hist(filteredData()[[input.singlevar()]], bins=input.bins())
             plt.xlabel(input.singlevar())
         elif input.plotType()=="box":
             sv = req(input.singlevar())
