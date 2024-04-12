@@ -1,7 +1,7 @@
 from shiny import App, ui, reactive, render, req
 import pandas as pd
-from pathlib import Path
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 app_ui = ui.page_fluid(
     ui.navset_tab(
@@ -83,8 +83,9 @@ def server(input, output, session):
     @reactive.effect
     def _():
         if len(list(filteredData().columns))>0:
-            ui.update_selectize("scattervars",choices=list(filteredData().columns),selected=list(filteredData().columns)[0])
-            ui.update_selectize("singlevar", choices=list(filteredData().columns), selected=list(filteredData().columns)[0])
+            varOptions = filteredData().select_dtypes(include="number").columns.tolist()
+            ui.update_selectize("scattervars",choices=varOptions,selected=varOptions[0])
+            ui.update_selectize("singlevar", choices=varOptions, selected=varOptions[0])
         else:
             ui.update_selectize("scattervars",choices=[])
             ui.update_selectize("singlevar", choices=[])
@@ -144,18 +145,30 @@ def server(input, output, session):
     def filtered():
         return filteredData()
     
+    # Plots
     @render.plot
     def plot():
         fig, ax = plt.subplots()
         if input.plotType()=="scatter":
-            if len(input.scattervars())==1:
+            sv = req(input.scattervars())
+            if len(sv)==1:
                 ax.scatter(filteredData().index, filteredData()[list(input.scattervars())])
+                plt.xlabel("Index")
+                plt.ylabel(input.scattervars()[0])
             else:
                 ax.scatter(filteredData()[list(input.scattervars())[0]], filteredData()[list(input.scattervars())[1]])
+                plt.xlabel(input.scattervars()[0])
+                plt.ylabel(input.scattervars()[1])
         elif input.plotType()=="hist":
+            sv = req(input.singlevar())
             ax.hist(filteredData()[[input.singlevar()]])
+            plt.xlabel(input.singlevar())
         elif input.plotType()=="box":
-            ax.boxplot(filteredData()[[input.singlevar()]])
+            sv = req(input.singlevar())
+            # boxplot does not ignore nan by itself
+            datanan = filteredData()[[input.singlevar()]]
+            ax.boxplot(datanan.dropna())
+            plt.ylabel(input.singlevar())
         return fig
 
 app = App(app_ui, server)
