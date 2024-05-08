@@ -143,22 +143,21 @@ server <- function(input, output, session) {
     req(input$upload)
     
     filext <- tools::file_ext(input$upload$name)
-    if(filext %in% c("txt","text","csv")){
-      sepct <- ","
-    } else if(filext %in% c("xls","xlsx","tsv")){
-      sepct <- "\t"
-    }
-    if(!input$delimiter=="best"){
-      # try to use custom delimiter 
-      data <- tryCatch(read.table(file = input$upload$datapath, sep = input$delimiter,
-                                  header=input$headerbool, fill=TRUE, quote="\""),
-                       # otherwise use comma or tab
-                        error = function(msg){
-                          read.table(file = input$upload$datapath, sep = sepct,
-                                     header=input$headerbool, fill=TRUE, quote="\"")})
+    
+    if(input$delimiter=="best"){
+      if(filext %in% c("txt","text","csv")){
+        sepct <- ","
+      } else if(filext %in% c("xls","xlsx","tsv")){
+        sepct <- "\t"
+      }
     }else{
-      data <- read.table(file = input$upload$datapath, sep = sepct, header=input$headerbool, fill=TRUE, quote="\"")
+      sepct <- input$delimiter
     }
+    data <- tryCatch(read.table(file = input$upload$datapath, sep = sepct, 
+                                header=input$headerbool, fill=TRUE, quote="\""),
+                     error = function(msg){
+                       data.frame(Error = msg$message)
+                     })
     
     #if(input$transpose) t(data) else data # would this be useful at any point?
     data
@@ -167,9 +166,9 @@ server <- function(input, output, session) {
   # Filtered dataset
   filteredData <- reactive({
     if(any(!input$cols %in% colnames(data())) | is.null(input$cols)){
-      data()
+      data()[,,drop=FALSE]
     }else{
-      data()[,input$cols]
+      data()[,input$cols,drop=FALSE]
     }
   })
   
