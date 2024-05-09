@@ -212,7 +212,7 @@ server <- function(input, output, session) {
 	              color = if(input$scattercol=="None") NULL else ~get(input$scattercol)) %>% 
 	        layout(xaxis = list(title = as.character(input$scattervars[1])),
 	               yaxis = list(title = as.character(input$scattervars[2])))
-	    } else {
+	    } else if (length(input$scattervars)==1){
 	      plot_ly(data = filteredData(), 
 	              x = ~get(input$scattervars[1]), 
 	              mode = "markers",
@@ -224,6 +224,8 @@ server <- function(input, output, session) {
 	    
 	  } else if (input$plotType == "hist"){
 	    # Histogram plot
+	    req(input$singlevar)
+	    
 	    minx <- floor(min(filteredData()[,input$singlevar]))
 	    maxx <- ceiling(max(filteredData()[,input$singlevar]))
 	    if(input$histcustom){
@@ -238,6 +240,8 @@ server <- function(input, output, session) {
 	    }
 	  } else if (input$plotType == "box"){
 	    # Box plot
+	    req(input$singlevar)
+	    
 	    plot_ly(filteredData(), y = ~get(input$singlevar),
 	            color = if(input$boxcol=="None") NULL else ~get(input$boxcol),
 	            type = "box") %>% 
