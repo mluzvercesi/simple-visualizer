@@ -49,7 +49,7 @@ ui <- dashboardPage(
         fluidRow(
           column(8,
             box(title = "Filtered dataset", width=12, status="warning",
-                DT::dataTableOutput("filtered"))),
+                DT::DTOutput("filtered"))),
           column(4, #align='center',
             box(title = "Plot options", width=12, status="success",
                 selectInput("plotType", "Plot Type",
@@ -96,8 +96,8 @@ server <- function(input, output, session) {
   observe({ # Update scatter variables
     req(filteredData())
     
-    varOptions <- names(which(sapply(filteredData(), is.numeric)))
-    colOptions <- names(which(sapply(filteredData(), is.character)))
+    varOptions <- if(ncol(filteredData())) names(which(sapply(filteredData(), is.numeric))) else NULL
+    colOptions <- if(ncol(filteredData())) names(which(sapply(filteredData(), is.character))) else NULL
     
     if(length(varOptions)>0){
       updateSelectizeInput(session, "scattervars",
@@ -195,7 +195,7 @@ server <- function(input, output, session) {
 	output$preview <- renderTable(head(filteredData()))
 	
 	# filtered data
-	output$filtered <- DT::renderDataTable(filteredData(), options = list(scrollX = TRUE))
+	output$filtered <- DT::renderDT(filteredData(), options = list(scrollX = TRUE))
 	
 	# plots
 	output$plot <- renderPlotly({
