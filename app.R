@@ -28,9 +28,10 @@ ui <- dashboardPage(
         fluidRow(
           column(4,
             box(title = "Data settings", width=12, status="success",
-                selectInput("delimiter", "Delimiter",
+                selectInput("separator", "Separator",
                             c("Detect from file type" = "best",
                               Comma = ",", Tab = "\t", Space=" ", Pipe = "|", Colon = ":", Semicolon = ";")),
+                radioButtons("delimiter", "Decimal delimiter", c(".", ","), inline=TRUE),
                 checkboxInput("headerbool", "Set first row as header", value = TRUE),
                 #checkboxInput("transpose", "Transpose", value = FALSE)
                 selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE)
@@ -144,17 +145,18 @@ server <- function(input, output, session) {
     
     filext <- tools::file_ext(input$upload$name)
     
-    if(input$delimiter=="best"){
+    if(input$separator=="best"){
       if(filext %in% c("txt","text","csv")){
         sepct <- ","
       } else if(filext %in% c("xls","xlsx","tsv")){
         sepct <- "\t"
       }
     }else{
-      sepct <- input$delimiter
+      sepct <- input$separator
     }
     data <- tryCatch(read.table(file = input$upload$datapath, sep = sepct, 
-                                header=input$headerbool, fill=TRUE, quote="\""),
+                                header=input$headerbool, fill=TRUE, quote="\"",
+                                dec = input$delimiter),
                      error = function(msg){
                        data.frame(Error = msg$message)
                      })
@@ -224,8 +226,8 @@ server <- function(input, output, session) {
 	    
 	  } else if (input$plotType == "hist"){
 	    # Histogram plot
-	    req(input$singlevar)
-	    
+		req(input$singlevar)
+		
 	    minx <- floor(min(filteredData()[,input$singlevar]))
 	    maxx <- ceiling(max(filteredData()[,input$singlevar]))
 	    if(input$histcustom){
@@ -240,8 +242,8 @@ server <- function(input, output, session) {
 	    }
 	  } else if (input$plotType == "box"){
 	    # Box plot
-	    req(input$singlevar)
-	    
+		req(input$singlevar)
+		
 	    plot_ly(filteredData(), y = ~get(input$singlevar),
 	            color = if(input$boxcol=="None") NULL else ~get(input$boxcol),
 	            type = "box") %>% 
