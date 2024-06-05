@@ -32,7 +32,8 @@ ui <- dashboardPage(
                             c("Detect from file type" = "best",
                               Comma = ",", Tab = "\t", Space=" ", Pipe = "|", Colon = ":", Semicolon = ";")),
                 radioButtons("delimiter", "Decimal delimiter", c(".", ","), inline=TRUE),
-                checkboxInput("headerbool", "Set first row as header", value = TRUE),
+                checkboxInput("headerbool", "Header", value = TRUE),
+                selectInput("rownames", "Row names", choices="Auto"),
                 #checkboxInput("transpose", "Transpose", value = FALSE)
                 selectInput("cols", "Keep columns", choices=NULL, multiple=TRUE)
                 )),
@@ -56,7 +57,7 @@ ui <- dashboardPage(
                                      c(Scatter = "scatter", Histogram = "hist", Boxplot = "box")),
                 conditionalPanel(
                   condition = "input.plotType == 'scatter'",
-                  selectizeInput("scattervars", "Scatter variables (numeric)", choices=NULL, options=list(maxItems=2)),
+                  selectizeInput("scattervars", "Variable(s) (numeric)", choices=NULL, options=list(maxItems=2)),
                   selectizeInput("scattercol", "Color by (character)", choices="None")
                 ),
                 conditionalPanel(
@@ -88,9 +89,20 @@ server <- function(input, output, session) {
   # Update UI options ####
   observe({ # Update column names input
     req(data())
+    
+    cnames <- names(data())
+    
     updateSelectInput(session, "cols",
-                      choices = names(data()),
-                      selected = names(data()))
+                      choices = setdiff(cnames,input$rownames),
+                      selected = setdiff(cnames,input$rownames))
+  })
+  
+  observe({ # Update row names input (with only unique names)
+    req(ncol(data())>1)
+    
+    updateSelectInput(session, "rownames",
+                      choices = c("Auto", names(data())[apply(data(), 2, function(x){length(unique(x))})==nrow(data())]),
+                      selected = "Auto")
   })
   
   observe({ # Update scatter variables
@@ -101,8 +113,8 @@ server <- function(input, output, session) {
     
     if(length(varOptions)>0){
       updateSelectizeInput(session, "scattervars",
-                      choices = varOptions,
-                      selected = varOptions[c(1,2)])
+                           choices = varOptions,
+                           selected = varOptions[c(1,2)])
       
       updateSelectizeInput(session, "singlevar",
                            choices = varOptions,
@@ -167,11 +179,22 @@ server <- function(input, output, session) {
   
   # Filtered dataset
   filteredData <- reactive({
-    if(any(!input$cols %in% colnames(data())) | is.null(input$cols)){
-      data()[,,drop=FALSE]
-    }else{
-      data()[,input$cols,drop=FALSE]
+    fdata <- data()
+    
+    if(input$rownames!="Auto" && input$rownames %in% names(fdata)){
+      idx <- which(names(fdata)==input$rownames)
+      rownames(fdata) <- fdata[,idx]
+      fdata <- fdata[,-idx,drop=FALSE]
     }
+    
+    if(any(!input$cols %in% colnames(fdata)) | is.null(input$cols)){
+      fdata[,,drop=FALSE]
+    }else{
+      fdata[,input$cols,drop=FALSE]
+    }
+    
+    
+    fdata
   })
   
   # Outputs ####
@@ -192,7 +215,7 @@ server <- function(input, output, session) {
   })
   
   # data preview
-	output$preview <- renderTable(head(filteredData()))
+	output$preview <- renderTable(head(filteredData()), rownames = T)
 	
 	# filtered data
 	output$filtered <- DT::renderDT(filteredData(), options = list(scrollX = TRUE))
